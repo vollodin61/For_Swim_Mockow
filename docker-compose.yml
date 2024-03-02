@@ -1,0 +1,54 @@
+version: '3.9'
+
+services:
+  db_host:
+    container_name: database
+    image: postgres:16.2
+    env_file:
+      - "bot/data/.env"
+    environment:
+      POSTGRES_PASSWORD: "postgres"
+    restart: always
+    ports:
+      - "5433:5432"  # возможно тут нужно написать порты 5433:5432
+    networks:
+      - botnet
+    volumes:
+      - pgdata:/var/lib/postgres/data
+      - ./backups:/backups
+
+  rediska:
+    container_name: rediska
+    image: "redis:5.0.1"
+    restart: always
+#    ports: ХЗ ПОЧЕМУ НО ЭТО НЕ НАДО, ЧТОБЫ ВНУТРИ ДОКЕРА БОТ К РЕДИСУ ОБРАЩАЛСЯ
+#      - "6378:6378"
+    command: redis-server
+    networks:
+      - botnet
+    volumes:
+      - rediska_v_sarafane:/etc/redis/data
+
+  swim_bot:
+    container_name: swimbot
+    build:
+      context: .
+    command: python main.py
+    networks:
+      - botnet
+    env_file:
+      - "bot/data/.env"
+    volumes:
+      - .:/swimbot
+    depends_on:
+      - db_host
+      - rediska
+
+volumes:
+  pgdata:
+  rediska_v_sarafane:
+
+networks:
+  botnet:
+    driver:
+      bridge
